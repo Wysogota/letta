@@ -127,7 +127,7 @@ class LLMClientBase:
                                 org_id=self._telemetry_org_id,
                                 user_id=self._telemetry_user_id,
                                 compaction_settings=self._telemetry_compaction_settings,
-                                llm_config=llm_config.model_dump() if llm_config else self._telemetry_llm_config,
+                                llm_config={"model": llm_config} if isinstance(llm_config, str) else (llm_config.model_dump() if llm_config else self._telemetry_llm_config),
                                 billing_context=self._telemetry_billing_context,
                             ),
                         )
@@ -189,7 +189,7 @@ class LLMClientBase:
                     org_id=self._telemetry_org_id,
                     user_id=self._telemetry_user_id,
                     compaction_settings=self._telemetry_compaction_settings,
-                    llm_config=llm_config.model_dump() if llm_config else self._telemetry_llm_config,
+                    llm_config={"model": llm_config} if isinstance(llm_config, str) else (llm_config.model_dump() if llm_config else self._telemetry_llm_config),
                     billing_context=self._telemetry_billing_context,
                 ),
             )

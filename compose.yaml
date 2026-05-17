@@ -23,6 +23,8 @@ services:
   letta_server:
     image: letta/letta:latest
     hostname: letta-server
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       letta_db:
         condition: service_healthy
@@ -34,7 +36,8 @@ services:
     environment:
       - LETTA_PG_URI=${LETTA_PG_URI:-postgresql://${LETTA_PG_USER:-letta}:${LETTA_PG_PASSWORD:-letta}@${LETTA_DB_HOST:-letta-db}:${LETTA_PG_PORT:-5432}/${LETTA_PG_DB:-letta}}
       - LETTA_DEBUG=True
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=http://host.docker.internal:3001/llm/proxy/dynamic
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-dummy_key}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
@@ -50,12 +53,21 @@ services:
       - CLICKHOUSE_DATABASE=${CLICKHOUSE_DATABASE}
       - CLICKHOUSE_USERNAME=${CLICKHOUSE_USERNAME}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-    # volumes:
-    # - ./configs/server_config.yaml:/root/.letta/config # config file
-    # - ~/.letta/credentials:/root/.letta/credentials # credentials file
-    # Uncomment this line to mount a local directory for tool execution, and specify the mount path
-    # before running docker compose: `export LETTA_SANDBOX_MOUNT_PATH=$PWD/directory`
-    # - ${LETTA_SANDBOX_MOUNT_PATH:?}:/root/.letta/tool_execution_dir # mounted volume for tool execution
+    volumes:
+      # ── Tellama patches: files mounted over the stock Letta image ──────────
+      # These override specific files inside letta/letta:latest so our fixes
+      # survive docker-compose down/up. When Letta releases an update, pull the
+      # new image, check if the patched files changed, and update accordingly.
+      - ./letta/agents/letta_agent_v2.py:/app/letta/agents/letta_agent_v2.py
+      - ./letta/llm_api/llm_client_base.py:/app/letta/llm_api/llm_client_base.py
+      - ./letta/adapters/simple_llm_request_adapter.py:/app/letta/adapters/simple_llm_request_adapter.py
+      - ./letta/adapters/simple_llm_stream_adapter.py:/app/letta/adapters/simple_llm_stream_adapter.py
+      - ./letta/adapters/letta_llm_request_adapter.py:/app/letta/adapters/letta_llm_request_adapter.py
+      - ./letta/adapters/letta_llm_stream_adapter.py:/app/letta/adapters/letta_llm_stream_adapter.py
+      # ── Optional standard Letta volumes (uncomment as needed) ──────────────
+      # - ./configs/server_config.yaml:/root/.letta/config
+      # - ~/.letta/credentials:/root/.letta/credentials
+      # - ${LETTA_SANDBOX_MOUNT_PATH:?}:/root/.letta/tool_execution_dir
   letta_nginx:
     hostname: letta-nginx
     image: nginx:stable-alpine3.17-slim

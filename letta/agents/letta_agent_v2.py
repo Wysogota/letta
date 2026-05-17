@@ -916,9 +916,17 @@ class LettaAgentV2(BaseAgentV2):
     def _request_checkpoint_start(self, request_start_timestamp_ns: int | None) -> Span | None:
         if request_start_timestamp_ns is not None:
             request_span = tracer.start_span("time_to_first_token", start_time=request_start_timestamp_ns)
-            request_span.set_attributes(
-                {f"llm_config.{k}": v for k, v in self.agent_state.llm_config.model_dump().items() if v is not None}
-            )
+            
+            import logging
+            log = logging.getLogger(__name__)
+            log.warning(f"DEBUG llm_config TYPE: {type(self.agent_state.llm_config)} VALUE: {self.agent_state.llm_config}")
+            
+            if isinstance(self.agent_state.llm_config, str):
+                request_span.set_attributes({"llm_config.model": self.agent_state.llm_config})
+            else:
+                request_span.set_attributes(
+                    {f"llm_config.{k}": v for k, v in self.agent_state.llm_config.model_dump().items() if v is not None}
+                )
             return request_span
         return None
 

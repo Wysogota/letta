@@ -313,7 +313,7 @@ class SimpleLLMStreamAdapter(LettaLLMStreamAdapter):
                         call_type=self.call_type,
                         org_id=self.org_id,
                         user_id=self.user_id,
-                        llm_config=self.llm_config.model_dump() if self.llm_config else None,
+                        llm_config={"model": self.llm_config} if isinstance(self.llm_config, str) else (self.llm_config.model_dump() if self.llm_config else None),
                         billing_context=self.billing_context,
                     ),
                 ),
