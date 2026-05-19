@@ -11,7 +11,7 @@ from letta.schemas.job import BatchJob, JobStatus, JobType, JobUpdate
 from letta.schemas.letta_message import LettaMessageSearchResult, LettaMessageUnion, MessageType
 from letta.schemas.letta_request import CreateBatch
 from letta.schemas.letta_response import LettaBatchMessages
-from letta.schemas.message import Message, SearchAllMessagesRequest
+from letta.schemas.message import Message, MessageUpdate, SearchAllMessagesRequest
 from letta.server.rest_api.dependencies import HeaderParams, get_headers, get_letta_server
 from letta.server.server import SyncServer
 from letta.settings import settings
@@ -286,3 +286,36 @@ async def retrieve_message(
     if message is None:
         raise HTTPException(status_code=404, detail=f"Message with id {message_id} not found.")
     return message.to_letta_messages()
+
+
+@router.patch("/{message_id}", response_model=MessagesResponse, operation_id="update_message")
+async def update_message(
+    message_id: MessageId,
+    request: MessageUpdate = Body(...),
+    server: SyncServer = Depends(get_letta_server),
+    headers: HeaderParams = Depends(get_headers),
+):
+    """
+    Update a message by ID.
+    """
+    actor = await server.user_manager.get_actor_or_default_async(actor_id=headers.actor_id)
+    message = await server.message_manager.update_message_by_id_async(
+        message_id=message_id, message_update=request, actor=actor
+    )
+    return message.to_letta_messages()
+
+
+@router.delete("/{message_id}", response_model=bool, operation_id="delete_message")
+async def delete_message(
+    message_id: MessageId,
+    server: SyncServer = Depends(get_letta_server),
+    headers: HeaderParams = Depends(get_headers),
+):
+    """
+    Delete a message by ID.
+    """
+    actor = await server.user_manager.get_actor_or_default_async(actor_id=headers.actor_id)
+    success = await server.message_manager.delete_message_by_id_async(
+        message_id=message_id, actor=actor
+    )
+    return success
